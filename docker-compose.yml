@@ -6,6 +6,7 @@ services:
   db:
     image: postgres:16
     container_name: triage_db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: triage
       POSTGRES_PASSWORD: triage
