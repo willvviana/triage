@@ -194,6 +194,126 @@ app.get('/api/tickets', async (req, res) => {
   }
 });
 
+// GET /api/tickets/:id
+//
+// The ticket detail endpoint — everything the detail panel needs in one
+// response: the ticket, its customer, its assigned agent, its logs, and
+// its notes.
+//
+// ONE query, using json_agg. Three things this buys us:
+//
+//   1. One round trip. The alternative (3-4 separate awaits) is N+1 by
+//      hand and scales badly once you're rendering 20 detail panels.
+//
+//   2. The nested data comes back as JSON arrays already — no combining
+//      rows in JS, no GROUP BY blowup in Node.
+//
+//   3. Subqueries with json_agg avoid the classic JOIN trap where you
+//      join logs AND notes to tickets and get a cartesian product
+//      (logs × notes rows per ticket). Subqueries sidestep that entirely.
+//
+// The COALESCE(..., '[]'::json) is important: json_agg returns NULL when
+// there are no rows, not an empty array. A ticket with no logs should
+// serialize as [] not null, so the frontend can safely .map() over it.
+app.get('/api/tickets/:id', async (req, res) => {
+  try {
+    const ticketId = req.params.id;
+
+    // Validate the UUID format before hitting Postgres. Otherwise a bad
+    // id gets passed to the query and Postgres throws "invalid input
+    // syntax for type uuid" — a 500 error where it should be a 400.
+    // This regex matches v1-v5 UUIDs. Close enough for validation.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(ticketId)) {
+      return res.status(400).json({ error: 'invalid ticket id format' });
+    }
+
+    const result = await pool.query(
+      `
+        SELECT
+          t.id,
+          t.external_id,
+          t.subject,
+          t.body,
+          t.category,
+          t.status,
+          t.priority,
+          t.created_at,
+          t.updated_at,
+          t.sla_deadline,
+          t.escalated_at,
+
+          -- Customer: joined flat because it's 1:1 with the ticket.
+          c.id     AS customer_id,
+          c.name   AS customer_name,
+          c.plan   AS customer_plan,
+          c.region AS customer_region,
+
+          -- Agent: nullable, so we return null when unassigned.
+          u.id           AS assigned_to_id,
+          u.display_name AS assigned_to_name,
+
+          -- Logs: aggregated into a JSON array. Subquery, not JOIN,
+          -- to avoid cartesian product with notes below.
+          COALESCE(
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'id',          l.id,
+                  'occurred_at', l.occurred_at,
+                  'level',       l.level,
+                  'endpoint',    l.endpoint,
+                  'status_code', l.status_code,
+                  'message',     l.message
+                )
+                ORDER BY l.occurred_at DESC
+              )
+              FROM ticket_logs l
+              WHERE l.ticket_id = t.id
+            ),
+            '[]'::json
+          ) AS logs,
+
+          -- Notes: same pattern. Separate subquery.
+          COALESCE(
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'id',          n.id,
+                  'author_id',   n.author_id,
+                  'author_name', u2.display_name,
+                  'body',        n.body,
+                  'created_at',  n.created_at
+                )
+                ORDER BY n.created_at ASC
+              )
+              FROM ticket_notes n
+              LEFT JOIN users u2 ON u2.id = n.author_id
+              WHERE n.ticket_id = t.id
+            ),
+            '[]'::json
+          ) AS notes
+
+        FROM tickets t
+        JOIN customers c ON c.id = t.customer_id
+        LEFT JOIN users u ON u.id = t.assigned_to
+        WHERE t.id = $1
+      `,
+      [ticketId],
+    );
+
+    const ticket = result.rows[0];
+    if (!ticket) {
+      return res.status(404).json({ error: 'ticket not found' });
+    }
+
+    res.json({ ticket });
+  } catch (err) {
+    console.error('[GET /api/tickets/:id] failed', err);
+    res.status(500).json({ error: 'internal error' });
+  }
+});
+
 // GET /api/analysis/top-customers
 // The endpoint that makes Triage Triage. Same SQL as scripts/analyze.ts —
 // moved here so the frontend can render it. The script remains for
