@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "seed": "tsx scripts/seed.ts",
-    "migrate": "tsx scripts/migrate.ts"
+    "migrate": "tsx scripts/migrate.ts",
+    "analyze": "tsx scripts/analyze.ts"
   },
   "dependencies": {
     "dotenv": "^18.0.6",
