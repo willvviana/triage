@@ -1,0 +1,24 @@
+# docker-compose.yml
+# Only Postgres for local dev. The app runs on the host, not in Docker.
+# Named volume keeps data between restarts so you don't reseed every time.
+
+services:
+  db:
+    image: postgres:16
+    container_name: triage_db
+    environment:
+      POSTGRES_USER: triage
+      POSTGRES_PASSWORD: triage
+      POSTGRES_DB: triage
+    ports:
+      - "5432:5432"
+    volumes:
+      - triage_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U triage -d triage"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  triage_pgdata:
