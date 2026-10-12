@@ -57,3 +57,36 @@
   flex: 1;
   padding: var(--space-5);
 }
+
+/* Page-level layout helpers. Used by page components for the shared
+   header + loading + error patterns. Kept in App.css because they're
+   layout concerns, not component-specific. */
+.page-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.page-header h1 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.page-header-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.page-loading {
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.page-error {
+  padding: var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background-color: rgba(231, 76, 60, 0.08);
+  color: var(--color-text);
+}

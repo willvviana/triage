@@ -1,0 +1,114 @@
+/* components/TicketTable.css
+ *
+ * Table styles. Uses tokens from styles/tokens.css.
+ *
+ * Key decisions:
+ *   - Full-width table, minimal borders. Data tables look better with
+ *     subtle row separators than with heavy borders around every cell.
+ *   - Hover highlight on rows. Signals "this row is interactive" without
+ *     an explicit click affordance.
+ *   - Fixed column widths for ID, Priority, Status, SLA, Assigned.
+ *     Subject takes the remaining space and truncates with ellipsis.
+ *     Without this, long subjects wrap and the table becomes a mess.
+ */
+
+.ticket-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-base);
+}
+
+.ticket-table thead th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  /* Keep the header visible while scrolling long queues. */
+  position: sticky;
+  top: 0;
+  background-color: var(--color-bg);
+  z-index: 1;
+}
+
+.ticket-table-row {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.08s ease;
+}
+
+.ticket-table-row:hover {
+  background-color: var(--color-bg-hover);
+}
+
+.ticket-table tbody td {
+  padding: var(--space-3);
+  vertical-align: middle;
+  color: var(--color-text);
+}
+
+/* Column sizing. The unset widths would otherwise be auto-sized by
+   content, which makes columns jitter as data changes. */
+.ticket-table-col-id       { width: 90px; font-family: var(--font-mono); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.ticket-table-col-subject  { /* takes remaining space */ }
+.ticket-table-col-customer { width: 160px; }
+.ticket-table-col-priority { width: 100px; }
+.ticket-table-col-status   { width: 110px; }
+.ticket-table-col-sla      { width: 100px; font-family: var(--font-mono); font-size: var(--font-size-sm); }
+.ticket-table-col-assigned { width: 130px; color: var(--color-text-muted); }
+
+.ticket-table-unassigned {
+  font-style: italic;
+  color: var(--color-text-dim);
+}
+
+/* Subject truncation. Long subjects should not blow out the table. */
+.ticket-table-col-subject {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-table-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ---- Badges ---- */
+
+.badge {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+}
+
+/* Priority badges. Colored by severity, using tokens. */
+.badge-priority--low      { background-color: rgba(90, 98, 112, 0.15); color: var(--color-priority-low); }
+.badge-priority--medium   { background-color: rgba(74, 158, 255, 0.15); color: var(--color-priority-medium); }
+.badge-priority--high     { background-color: rgba(245, 166, 35, 0.15); color: var(--color-priority-high); }
+.badge-priority--critical { background-color: rgba(231, 76, 60, 0.15);  color: var(--color-priority-critical); }
+
+/* Status badges. Lower-key than priority — status is informational,
+   priority is the thing that draws the eye. */
+.badge-status {
+  background-color: var(--color-bg-hover);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.badge-status--open       { color: var(--color-info); }
+.badge-status--escalated  { color: var(--color-danger); }
+.badge-status--waiting    { color: var(--color-warning); }
+.badge-status--resolved   { color: var(--color-success); }
+/* pending keeps the default muted look */
