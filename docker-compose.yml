@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: triage
       POSTGRES_DB: triage
     ports:
-      - "5432:5432"
+      - "5433:5432"      # host 5433 -> container 5432. Avoids elevvo-postgres on 5432.
     volumes:
       - triage_pgdata:/var/lib/postgresql/data
     healthcheck:

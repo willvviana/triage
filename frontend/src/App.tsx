@@ -1,57 +1,49 @@
 // App.tsx
-// TEMPORARY: raw fetch test.
+// Application shell: nav bar + routed content area.
 //
-// This file will be replaced with the real app shell (router, layout,
-// pages) in the next step. Its only job right now is to prove that:
-//   1. The React app can reach the backend
-//   2. The fetch wrapper returns the shape we typed in types/ticket.ts
-//   3. We can render real DB data on screen
-//
-// If this shows raw JSON with 3 real tickets, the frontend/backend
-// wiring is done. Everything after this is UI work.
+// This file owns the layout. It does NOT own the pages — those live in
+// src/pages/. Adding a new page means: create the page file, add a
+// <Route> here, add a nav link. Three small edits, no refactoring.
 
-import { useEffect, useState } from 'react';
-import { fetchTickets } from './api/client';
-import type { TicketListResponse } from './types/ticket';
+import { NavLink, Route, Routes } from 'react-router-dom';
+import TicketsPage from './pages/TicketsPage';
+import AnalysisPage from './pages/AnalysisPage';
+import './App.css';
 
 function App() {
-  const [data, setData] = useState<TicketListResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Note: no cleanup / abort handling here. This is a test component
-    // that runs once on mount. The real components will handle
-    // unmount-during-fetch properly.
-    fetchTickets({ limit: 3 })
-      .then(setData)
-      .catch((err: Error) => setError(err.message));
-  }, []);
-
-  if (error) {
-    return (
-      <div style={{ padding: 20, color: 'red', fontFamily: 'monospace' }}>
-        <h1>Error</h1>
-        <pre>{error}</pre>
-        <p>Is the backend running on http://127.0.0.1:3001?</p>
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div style={{ padding: 20, fontFamily: 'monospace' }}>Loading...</div>
-    );
-  }
-
   return (
-    <div style={{ padding: 20, fontFamily: 'monospace' }}>
-      <h1>Triage — wiring test</h1>
-      <p>
-        Showing {data.tickets.length} of {data.pagination.total} tickets
-      </p>
-      <pre style={{ background: '#f4f4f4', padding: 12, overflow: 'auto' }}>
-        {JSON.stringify(data, null, 2)}
-      </pre>
+    <div className="app-shell">
+      <nav className="app-nav">
+        <div className="app-nav-brand">Triage</div>
+        <div className="app-nav-links">
+          <NavLink
+            to="/tickets"
+            className={({ isActive }) =>
+              isActive ? 'app-nav-link app-nav-link--active' : 'app-nav-link'
+            }
+          >
+            Tickets
+          </NavLink>
+          <NavLink
+            to="/analysis"
+            className={({ isActive }) =>
+              isActive ? 'app-nav-link app-nav-link--active' : 'app-nav-link'
+            }
+          >
+            Analysis
+          </NavLink>
+        </div>
+      </nav>
+
+      <main className="app-main">
+        <Routes>
+          {/* Redirect the root to the default page. Without this, "/" 
+              renders nothing and the user sees a blank screen. */}
+          <Route path="/" element={<TicketsPage />} />
+          <Route path="/tickets" element={<TicketsPage />} />
+          <Route path="/analysis" element={<AnalysisPage />} />
+        </Routes>
+      </main>
     </div>
   );
 }
