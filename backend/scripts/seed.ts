@@ -59,7 +59,7 @@ const CUSTOMER_WAYNE = 'a0000000-0000-0000-0000-00000000000a';
 // Using real now() would make the data shift daily and break reproducibility.
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
-const NOW = new Date('2026-10-08T12:00:00Z');
+const NOW = new Date();
 
 function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * DAY);
@@ -69,6 +69,29 @@ function hoursAgo(hours: number): Date {
 }
 function hoursFromNow(hours: number): Date {
   return new Date(NOW.getTime() + hours * HOUR);
+}
+
+// SLA deadline for volume tickets. Produces a realistic mix across the
+// three states the UI cares about:
+//   - ~15% breached  (deadline already passed)
+//   - ~15% at-risk   (deadline within the next hour)
+//   - ~70% on-track  (deadline further out)
+//
+// Deterministic — cycles based on `i % 20` so every run produces the
+// same pattern. The pattern itself is what matters; the exact offsets
+// shift with NOW.
+function volumeSlaDeadline(i: number): Date {
+  const bucket = i % 20;
+  if (bucket < 3) {
+    // 3 of 20 = breached. 1 to 12 hours overdue.
+    return hoursAgo(1 + (i % 12));
+  }
+  if (bucket < 6) {
+    // 3 of 20 = at-risk. 5 to 55 minutes remaining.
+    return new Date(NOW.getTime() + (5 + (i % 10)) * 60 * 1000);
+  }
+  // 14 of 20 = on-track. 2 hours to roughly 4 days out.
+  return hoursFromNow(2 + (i % 100));
 }
 
 // ---------------------------------------------------------------------------
@@ -266,7 +289,7 @@ async function seed(): Promise<void> {
         status: statuses[i % statuses.length]!,
         priority: priorities[i % priorities.length]!,
         assignedTo: agents[i % agents.length]!,
-        slaDeadline: hoursFromNow(4 + (i % 48)),
+        slaDeadline: volumeSlaDeadline(i),
         escalatedAt: null,
       });
       volumeTicketIds.push(id);
