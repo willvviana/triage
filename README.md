@@ -4,11 +4,15 @@ A support ticket triage dashboard. It answers one question: **what should a supp
 
 Built as a portfolio project to demonstrate full-stack engineering — TypeScript end to end, Postgres, Express, React.
 
-<!--
-  TODO: Replace this block with a real screenshot once the tickets page
-  is rendered. A README without an image is a README half-read.
-  ![Tickets dashboard](./docs/screenshot-tickets.png)
--->
+## Live demo
+
+- **Frontend:** https://triage-coral-beta.vercel.app
+- **API health:** https://triage-api-5bs6.onrender.com/health
+
+> **Note:** the API runs on Render's free tier, which spins down after 15 minutes of inactivity. The first request after idle may take 30–60 seconds. Refresh once if the page appears stuck.
+
+![Tickets dashboard](./docs/screenshot-tickets.png)
+![Ticket detail](./docs/screenshot-detail.png)
 
 ---
 
@@ -41,6 +45,7 @@ Honest list of gaps, kept here on purpose. v0.1 focuses on the workflow, not aut
 | Frontend   | React + TypeScript + Vite + React Router     |
 | Styling    | Plain CSS with design tokens                 |
 | Dev tooling| `tsx` for TypeScript execution, ESLint       |
+| Hosting    | Frontend on Vercel, API + DB on Render       |
 
 No ORM. Raw SQL in migration files and query strings. This is a deliberate choice for a project this size — it keeps the SQL visible and reviewable.
 
@@ -74,14 +79,16 @@ From the repo root:
 docker compose up -d
 ```
 
+The container maps to host port **5433**, not the default 5432, to avoid conflicts with any native or other-container Postgres on the developer's machine.
+
 ### 3. Run the schema migration
 
 ```bash
 cd backend
-docker compose exec -T db psql -U triage -d triage < backend/src/db/migrations/001_init.sql
+Get-Content backend\src\db\migrations\001_init.sql | docker compose exec -T db psql -U triage -d triage
 ```
 
-*(On Windows PowerShell, use: `Get-Content backend\src\db\migrations\001_init.sql | docker compose exec -T db psql -U triage -d triage`)*
+*(On macOS/Linux: `docker compose exec -T db psql -U triage -d triage < backend/src/db/migrations/001_init.sql`)*
 
 ### 4. Seed development data
 
@@ -187,18 +194,28 @@ triage/
 
 ---
 
+## Deployment
+
+- **Frontend** deploys to Vercel. Root directory is `frontend`. The `VITE_API_URL` env var points at the Render API.
+- **Backend + database** deploy to Render via `render.yaml` at the repo root. The web service reads `DATABASE_URL` and `FRONTEND_URL` from Render's environment.
+- **Migrations** are run manually against the deployed database using the External Database URL. There is no automatic migration on deploy — this is deliberate, to avoid accidental schema changes.
+
+---
+
 ## Roadmap
 
 - [x] Schema and migration
 - [x] Deterministic seed data
 - [x] REST API: tickets, filters, pagination, detail, analysis
 - [x] Frontend scaffold and design tokens
-- [ ] Tickets page with table, SLA countdown, filters
-- [ ] Ticket detail panel (logs, notes)
+- [x] Tickets page with table, SLA countdown, filters
+- [x] Ticket detail panel (logs, notes)
+- [x] Deployed (Vercel + Render)
 - [ ] Analysis page
 - [ ] Authentication (v0.2)
 - [ ] Tests on the analysis and filter logic (v0.2)
-- [ ] Deploy (v0.2)
+- [ ] Seed realism pass — varied timestamps, non-round SLA minutes
+- [ ] Custom domain
 
 ---
 
