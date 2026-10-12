@@ -31,6 +31,10 @@ import type { TicketListResponse } from '../types/ticket';
 import TicketTable from '../components/TicketTable';
 import TicketFilters from '../components/TicketFilters';
 import Pagination from '../components/Pagination';
+import { useParams, useNavigate } from 'react-router-dom';
+import { fetchTicketDetail } from '../api/client';
+import type { TicketDetail as TicketDetailType } from '../types/ticket';
+import TicketDetail from '../components/TicketDetail';
 
 function TicketsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,7 +54,54 @@ function TicketsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
+  const { id: detailId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
+  const [detail, setDetail] = useState<TicketDetailType | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+
+  // Fetch the ticket detail whenever the URL's :id changes. If the URL
+  // has no :id, we skip the fetch and clear state.
+  useEffect(() => {
+    if (!detailId) {
+      setDetail(null);
+      setDetailError(null);
+      setDetailLoading(false);
+      return;
+    }
+
+    setDetailLoading(true);
+    setDetailError(null);
+    setDetail(null); // clear previous detail so we don't flash old data
+
+    fetchTicketDetail(detailId)
+      .then((res) => setDetail(res.ticket))
+      .catch((err: Error) => setDetailError(err.message))
+      .finally(() => setDetailLoading(false));
+  }, [detailId]);
+
+  function handleRowClick(ticketId: string) {
+    // Navigate to the detail URL. Because TicketsPage is rendered for
+    // BOTH /tickets and /tickets/:id (see App.tsx), navigating here does
+    // not unmount the list — only the :id param changes, and the detail
+    // fetch effect fires.
+    //
+    // Preserve the current query string (filters, page) so closing the
+    // detail returns to the exact same list state.
+    navigate({
+      pathname: `/tickets/${ticketId}`,
+      search: searchParams.toString(),
+    });
+  }
+
+  function handleDetailClose() {
+    // Return to /tickets, keeping any existing filters in the URL.
+    navigate({
+      pathname: '/tickets',
+      search: searchParams.toString(),
+    });
+  }
   // Fetch when any filter changes.
   //
   // Dependencies are primitive values (status, priority, page), NOT the
@@ -147,9 +198,13 @@ function TicketsPage() {
         </div>
       )}
 
-        {!loading && !error && data && (
+       {!loading && !error && data && (
         <>
-        <TicketTable tickets={data.tickets} now={now} />
+        <TicketTable
+        tickets={data.tickets}
+        now={now}
+        onRowClick={handleRowClick}
+        />
         <Pagination
          currentPage={data.pagination.page}
          totalPages={data.pagination.total_pages}
@@ -157,6 +212,34 @@ function TicketsPage() {
         />
         </>
       )}
+
+      {detailId && detailLoading && (
+        <aside className="ticket-detail ticket-detail--loading">
+          Loading ticket…
+        </aside>
+      )}
+
+      {detailId && detailError && (
+        <aside className="ticket-detail ticket-detail--error">
+          <header className="ticket-detail__header">
+            <strong>Could not load ticket</strong>
+            <button
+              type="button"
+              className="ticket-detail__close"
+              onClick={handleDetailClose}
+              aria-label="Close detail panel"
+            >
+              ×
+            </button>
+          </header>
+          <p>{detailError}</p>
+        </aside>
+      )}
+
+      {detail && (
+        <TicketDetail ticket={detail} now={now} onClose={handleDetailClose} />
+      )}
+
     </div>
   );
 }

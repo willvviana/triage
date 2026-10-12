@@ -1,0 +1,215 @@
+/* components/TicketDetail.css
+ *
+ * The drawer is position: fixed, pinned to the right. The list stays
+ * visible underneath. For v0.1 it always overlays (no responsive
+ * breakpoints). On a narrow screen it would take the full width; that's
+ * a v0.2 refinement.
+ */
+
+.ticket-detail {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 520px;
+  max-width: 90vw;
+  background-color: var(--color-bg-elevated);
+  border-left: 1px solid var(--color-border);
+  overflow-y: auto;
+  padding: var(--space-5);
+  z-index: 10;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3);
+  /* Slide-in animation. 150ms feels instant but not jarring. */
+  animation: slide-in 0.15s ease-out;
+}
+
+@keyframes slide-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.ticket-detail__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.ticket-detail__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ticket-detail__id {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.ticket-detail__close {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-md);
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ticket-detail__close:hover {
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-hover);
+}
+
+.ticket-detail__subject {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  line-height: 1.3;
+}
+
+.ticket-detail__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.ticket-detail__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ticket-detail__meta-item dt {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.ticket-detail__meta-item dd {
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+}
+
+.ticket-detail__meta-sub {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.ticket-detail__section {
+  margin-bottom: var(--space-5);
+}
+
+.ticket-detail__section-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.ticket-detail__body {
+  color: var(--color-text);
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.ticket-detail__empty {
+  color: var(--color-text-dim);
+  font-style: italic;
+  font-size: var(--font-size-sm);
+}
+
+/* ---- Logs table ---- */
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.log-table th {
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.log-cell {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.log-cell--time,
+.log-cell--endpoint,
+.log-cell--code {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.log-cell--level {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+}
+
+.log-row--error .log-cell--level { color: var(--color-danger); }
+.log-row--warn  .log-cell--level { color: var(--color-warning); }
+.log-row--info  .log-cell--level { color: var(--color-text-muted); }
+
+/* Give error rows a subtle left border so they stand out when scanning. */
+.log-row--error td:first-child {
+  border-left: 2px solid var(--color-danger);
+}
+
+/* ---- Notes ---- */
+
+.note-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.note-item {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.note-item__meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.note-item__author {
+  font-weight: 600;
+}
+
+.note-item__body {
+  color: var(--color-text);
+  line-height: 1.5;
+}

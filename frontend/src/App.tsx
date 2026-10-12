@@ -37,10 +37,9 @@ function App() {
 
       <main className="app-main">
         <Routes>
-          {/* Redirect the root to the default page. Without this, "/" 
-              renders nothing and the user sees a blank screen. */}
           <Route path="/" element={<TicketsPage />} />
           <Route path="/tickets" element={<TicketsPage />} />
+          <Route path="/tickets/:id" element={<TicketsPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
         </Routes>
       </main>

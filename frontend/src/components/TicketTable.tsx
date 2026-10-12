@@ -1,45 +1,20 @@
 // components/TicketTable.tsx
 //
 // The ticket list, rendered as a table.
-//
-// Design decisions in this file:
-//
-// 1. Semantic <table>, not a grid of <div>s.
-//    Screen readers, keyboard navigation, and copy-paste all work
-//    naturally with <table>. A div-grid requires re-implementing all of
-//    that. The visual result is identical; the accessibility isn't.
-//
-// 2. The whole row is clickable, not just the ID.
-//    Large click targets. Support agents scanning a queue shouldn't have
-//    to aim for a small link. We wrap the row's primary cells in an <a>
-//    at the CSS level instead of nesting <a> in every cell — more on that
-//    in the CSS file.
-//
-// 3. No SLA countdown yet.
-//    Step 10 owns that. For now the SLA column shows the raw deadline
-//    formatted as HH:MM. When we add the countdown, only this file and
-//    a new SlaCell component change.
-//
-// 4. Empty state is explicit.
-//    If the API returns 0 tickets, "nothing here" is the correct render,
-//    not an empty <tbody> that looks broken.
+// Row rendering is delegated to TicketRow. This file owns the table
+// structure and the empty state.
 
 import type { TicketListItem } from '../types/ticket';
-import PriorityBadge from './PriorityBadge';
-import StatusBadge from './StatusBadge';
+import TicketRow from './TicketRow';
 import './TicketTable.css';
-import SlaCell from './SlaCell';
-
-interface TicketTableProps {
-  tickets: TicketListItem[];
-}
 
 interface TicketTableProps {
   tickets: TicketListItem[];
   now: number;
+  onRowClick?: (id: string) => void;
 }
 
-function TicketTable({ tickets, now }: TicketTableProps) {
+function TicketTable({ tickets, now, onRowClick }: TicketTableProps) {
   if (tickets.length === 0) {
     return (
       <div className="ticket-table-empty">
@@ -63,27 +38,12 @@ function TicketTable({ tickets, now }: TicketTableProps) {
       </thead>
       <tbody>
         {tickets.map((ticket) => (
-          <tr key={ticket.id} className="ticket-table-row">
-            <td className="ticket-table-col-id">{ticket.external_id}</td>
-            <td className="ticket-table-col-subject">{ticket.subject}</td>
-            <td className="ticket-table-col-customer">
-              {ticket.customer_name}
-            </td>
-            <td className="ticket-table-col-priority">
-              <PriorityBadge priority={ticket.priority} />
-            </td>
-            <td className="ticket-table-col-status">
-              <StatusBadge status={ticket.status} />
-            </td>
-                        <td className="ticket-table-col-sla">
-              <SlaCell deadline={ticket.sla_deadline} now={now} />
-            </td>
-            <td className="ticket-table-col-assigned">
-              {ticket.assigned_to_name ?? (
-                <span className="ticket-table-unassigned">Unassigned</span>
-              )}
-            </td>
-          </tr>
+          <TicketRow
+            key={ticket.id}
+            ticket={ticket}
+            now={now}
+            onRowClick={onRowClick}
+          />
         ))}
       </tbody>
     </table>
