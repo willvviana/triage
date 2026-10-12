@@ -30,6 +30,7 @@ import { fetchTickets } from '../api/client';
 import type { TicketListResponse } from '../types/ticket';
 import TicketTable from '../components/TicketTable';
 import TicketFilters from '../components/TicketFilters';
+import Pagination from '../components/Pagination';
 
 function TicketsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -99,6 +100,29 @@ function TicketsPage() {
     setSearchParams(next);
   }
 
+  // Called by the Pagination component. Writes `page` to the URL.
+  //
+  // If the user clicks page 1, we delete the `page` param entirely
+  // instead of setting `page=1`. Two reasons:
+  //   1. Cleaner URLs — the default state has no params.
+  //   2. It avoids pushing a new history entry when clicking the
+  //      already-active page 1, because React Router compares the
+  //      resulting URL string, and it's identical.
+  function handlePageChange(newPage: number) {
+    const next = new URLSearchParams(searchParams);
+    if (newPage <= 1) {
+      next.delete('page');
+    } else {
+      next.set('page', String(newPage));
+    }
+    setSearchParams(next);
+
+    // Scroll to top so the user isn't left at the bottom of the new page.
+    // `behavior: 'instant'` rather than 'smooth' — smooth scroll on a
+    // table that's about to re-render feels janky.
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -123,8 +147,15 @@ function TicketsPage() {
         </div>
       )}
 
-      {!loading && !error && data && (
+        {!loading && !error && data && (
+        <>
         <TicketTable tickets={data.tickets} now={now} />
+        <Pagination
+         currentPage={data.pagination.page}
+         totalPages={data.pagination.total_pages}
+         onChange={handlePageChange}
+        />
+        </>
       )}
     </div>
   );
