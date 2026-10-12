@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "scripts": {
+    "scripts": {
     "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
     "seed": "tsx scripts/seed.ts",
     "migrate": "tsx scripts/migrate.ts",
-    "analyze": "tsx scripts/analyze.ts"
+    "analyze": "tsx scripts/analyze.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "cors": "^2.8.6",

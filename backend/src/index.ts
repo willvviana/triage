@@ -36,9 +36,23 @@ app.use(express.json());
 // Why not "*": it's a habit worth breaking early. Wildcard CORS works in
 // dev and becomes a security bug in prod. Being explicit now means the
 // config you ship to production is the config you tested.
+// CORS. Origins are allowed explicitly, never "*". In production we
+// allow the deployed Vercel URL. In dev we allow the Vite dev server.
+//
+// The FRONTEND_URL env var is set in Render's dashboard. For local dev
+// it's undefined, and we fall back to the localhost origins.
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: allowedOrigins,
   }),
 );
 
@@ -349,9 +363,12 @@ app.get('/api/analysis/top-customers', async (_req, res) => {
 
 const PORT = Number(process.env.PORT ?? 3001);
 
-// Bind to 127.0.0.1, not 0.0.0.0. On a dev machine, there's no reason to
-// expose the server to your LAN. 0.0.0.0 is correct for production/container
-// environments, wrong for local development.
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`[server] listening on http://127.0.0.1:${PORT}`);
+// In production (Render), the app must listen on 0.0.0.0 so Render's
+// proxy can reach it. On a local machine, listening on 127.0.0.1 is
+// safer — it prevents other machines on your LAN from reaching the
+// dev server. We use env to decide.
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+
+app.listen(PORT, HOST, () => {
+  console.log(`[server] listening on http://${HOST}:${PORT}`);
 });

@@ -1,0 +1,35 @@
+# render.yaml
+# Infrastructure-as-code for Render. Defines the backend service and the
+# Postgres database. Commit this — Render reads it on every push and
+# applies changes. This is the "documented deploy" that a reviewer sees.
+#
+# Notes:
+#   - The frontend is NOT here. Vercel handles it separately.
+#   - `plan: free` on both. Cold-start on the API is real but acceptable.
+#   - `region: oregon` is the default. Change if you want a different one.
+#   - environment variables marked `sync: false` must be set manually in
+#     the Render dashboard after the first deploy. We do this for
+#     DATABASE_URL so the connection string isn't in the repo.
+
+services:
+  - type: web
+    name: triage-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false   # set manually in the dashboard
+
+databases:
+  - name: triage-db
+    plan: free
+    region: oregon
+    databaseName: triage
+    user: triage
