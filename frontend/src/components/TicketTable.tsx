@@ -28,20 +28,18 @@ import type { TicketListItem } from '../types/ticket';
 import PriorityBadge from './PriorityBadge';
 import StatusBadge from './StatusBadge';
 import './TicketTable.css';
+import SlaCell from './SlaCell';
 
 interface TicketTableProps {
   tickets: TicketListItem[];
 }
 
-// Format an ISO timestamp as a short local time. We'll replace this with
-// a real countdown in Step 10 — for now it's just readable.
-function formatShortTime(iso: string): string {
-  const d = new Date(iso);
-  // toLocaleTimeString with these options gives e.g. "09:00" or "14:30".
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+interface TicketTableProps {
+  tickets: TicketListItem[];
+  now: number;
 }
 
-function TicketTable({ tickets }: TicketTableProps) {
+function TicketTable({ tickets, now }: TicketTableProps) {
   if (tickets.length === 0) {
     return (
       <div className="ticket-table-empty">
@@ -77,10 +75,8 @@ function TicketTable({ tickets }: TicketTableProps) {
             <td className="ticket-table-col-status">
               <StatusBadge status={ticket.status} />
             </td>
-            <td className="ticket-table-col-sla">
-              {ticket.sla_deadline
-                ? formatShortTime(ticket.sla_deadline)
-                : '—'}
+                        <td className="ticket-table-col-sla">
+              <SlaCell deadline={ticket.sla_deadline} now={now} />
             </td>
             <td className="ticket-table-col-assigned">
               {ticket.assigned_to_name ?? (

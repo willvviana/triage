@@ -20,6 +20,12 @@ function TicketsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Current time in milliseconds. Updated once per minute by a timer
+  // below. Passed down to the table so SLA cells re-render with fresh
+  // values. This is the *single* timer for the whole page — the table
+  // and its cells do not run their own timers.
+  const [now, setNow] = useState(() => Date.now());
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -36,7 +42,19 @@ function TicketsPage() {
       });
   }, []);
 
-  return (
+  // Update `now` every 60 seconds. Returns a cleanup function that
+  // clears the interval on unmount — without this, the timer keeps
+  // running after navigating away, which leaks memory and causes
+  // "state update on unmounted component" warnings.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+    return (
     <div>
       <div className="page-header">
         <h1>Tickets</h1>
@@ -46,6 +64,10 @@ function TicketsPage() {
           </span>
         )}
       </div>
+
+      {!loading && !error && data && (
+        <TicketTable tickets={data.tickets} now={now} />
+      )}
 
       {loading && <div className="page-loading">Loading tickets…</div>}
 
@@ -58,8 +80,6 @@ function TicketsPage() {
           </div>
         </div>
       )}
-
-      {!loading && !error && data && <TicketTable tickets={data.tickets} />}
     </div>
   );
 }

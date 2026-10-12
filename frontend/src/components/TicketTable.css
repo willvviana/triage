@@ -112,3 +112,35 @@
 .badge-status--waiting    { color: var(--color-warning); }
 .badge-status--resolved   { color: var(--color-success); }
 /* pending keeps the default muted look */
+
+/* SLA cell states. The state name (on_track, at_risk, breached, none)
+   comes from utils/sla.ts, not from this stylesheet. */
+
+.sla {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sla--on_track {
+  color: var(--color-text-muted);
+}
+
+.sla--at_risk {
+  color: var(--color-warning);
+}
+
+.sla--breached {
+  color: var(--color-danger);
+  /* Slight background highlight so breached rows stand out even when
+     the eye is scanning quickly. Subtle — a full row highlight would
+     be too loud. */
+  background-color: rgba(231, 76, 60, 0.1);
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.sla--none {
+  color: var(--color-text-dim);
+}
