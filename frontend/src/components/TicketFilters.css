@@ -1,0 +1,52 @@
+/* components/TicketFilters.css */
+
+.filters {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  margin-bottom: var(--space-4);
+}
+
+.filters-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.filters-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.filters-select {
+  background-color: var(--color-bg-input);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-base);
+  min-width: 140px;
+  cursor: pointer;
+  /* Remove the native dropdown arrow styling differences between
+     browsers as much as possible. Full custom arrow would require a
+     wrapper element; skip it for v0.1. */
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
+                    linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 14px) center, calc(100% - 9px) center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: var(--space-6);
+}
+
+.filters-select:hover {
+  border-color: var(--color-border-strong);
+}
+
+.filters-select:focus {
+  outline: none;
+  border-color: var(--color-info);
+}
