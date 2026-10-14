@@ -9,6 +9,10 @@
 //      `if (!res.ok) throw ...`. That's noise.
 //   3. Response normalization. error_count arrives as a string; we
 //      convert it here so downstream code deals with numbers.
+//   4. Timeout. The backend runs on Render's free tier, which spins down
+//      after 15 minutes of inactivity. Cold starts take 30-60 seconds.
+//      Without an explicit timeout, fetch() hangs until the browser gives
+//      up, with no feedback to the user.
 
 import type {
   ApiError,
@@ -21,6 +25,10 @@ import type {
 // This is safe because it's a public URL, not a secret. Do NOT put
 // secrets in VITE_ vars — they end up in the JS the browser downloads.
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:3001';
+
+// Render free-tier cold starts can take 30-60 seconds. We allow 90 to be
+// safe, then abort with a message the user can understand.
+const REQUEST_TIMEOUT_MS = 90_000;
 
 // Custom error type. Distinguishes "the backend said no" (400/404/500 with
 // a JSON body) from "the network is down" (fetch threw). Components can
@@ -38,21 +46,39 @@ export class ApiRequestError extends Error {
 // Core request function. Not exported directly — the typed helpers below
 // call it so every endpoint gets the same treatment.
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // AbortController lets us cancel a fetch after a timeout. Without this,
+  // a request against a sleeping Render instance hangs until the browser's
+  // own timeout (which varies and can be 90+ seconds), with no feedback.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   let response: Response;
 
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       ...init,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...init?.headers,
       },
     });
   } catch (err) {
-    // fetch() only rejects on network failure (DNS, connection refused,
-    // CORS preflight failure). HTTP errors are NOT rejections — they
-    // arrive as a Response with ok: false.
+    // Two failure modes land here:
+    //   1. Network failure (DNS, connection refused, CORS preflight failure)
+    //   2. Abort due to timeout
+    // We distinguish them by checking the error name.
+    if ((err as Error).name === 'AbortError') {
+      throw new ApiRequestError(
+        0,
+        'Request timed out. The backend may be waking up from sleep — try again in a moment.',
+      );
+    }
     throw new ApiRequestError(0, `Network error: ${(err as Error).message}`);
+  } finally {
+    // Always clear the timer, whether the request succeeded, failed, or
+    // was aborted. A leaked timer is a memory leak.
+    clearTimeout(timeoutId);
   }
 
   // Try to parse the body regardless of status, because error responses

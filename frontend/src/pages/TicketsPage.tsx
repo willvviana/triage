@@ -25,15 +25,15 @@
 //      to fetchTickets for empty strings, so URLSearchParams strips them.
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { fetchTickets } from '../api/client';
-import type { TicketListResponse } from '../types/ticket';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { fetchTickets, fetchTicketDetail } from '../api/client';
+import type {
+  TicketListResponse,
+  TicketDetail as TicketDetailType,
+} from '../types/ticket';
 import TicketTable from '../components/TicketTable';
 import TicketFilters from '../components/TicketFilters';
 import Pagination from '../components/Pagination';
-import { useParams, useNavigate } from 'react-router-dom';
-import { fetchTicketDetail } from '../api/client';
-import type { TicketDetail as TicketDetailType } from '../types/ticket';
 import TicketDetail from '../components/TicketDetail';
 
 function TicketsPage() {
@@ -44,16 +44,13 @@ function TicketsPage() {
   // through the component.
   const status = searchParams.get('status') ?? '';
   const priority = searchParams.get('priority') ?? '';
-
-  // `page` is reserved for Step 12 — we read it here so the dependency
-  // and the fetch call don't need to change when we add pagination
-  // controls. For now it defaults to 1 and is never written.
   const page = Number(searchParams.get('page') ?? '1');
 
   const [data, setData] = useState<TicketListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(() => Date.now());
+
   const { id: detailId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -81,6 +78,32 @@ function TicketsPage() {
       .finally(() => setDetailLoading(false));
   }, [detailId]);
 
+  // Fetch when any filter changes.
+  //
+  // Dependencies are primitive values (status, priority, page), NOT the
+  // searchParams object. searchParams is a fresh object every render,
+  // so depending on it would refetch on every render forever.
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    fetchTickets({
+      status: status || undefined,
+      priority: priority || undefined,
+      page,
+      limit: 50,
+    })
+      .then(setData)
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [status, priority, page]);
+
+  // 60-second ticker for the SLA column.
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   function handleRowClick(ticketId: string) {
     // Navigate to the detail URL. Because TicketsPage is rendered for
     // BOTH /tickets and /tickets/:id (see App.tsx), navigating here does
@@ -102,37 +125,9 @@ function TicketsPage() {
       search: searchParams.toString(),
     });
   }
-  // Fetch when any filter changes.
-  //
-  // Dependencies are primitive values (status, priority, page), NOT the
-  // searchParams object. searchParams is a fresh object every render,
-  // so depending on it would refetch on every render forever.
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-
-    fetchTickets({
-      status: status || undefined,
-      priority: priority || undefined,
-      page,
-      limit: 50,
-    })
-      .then(setData)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [status, priority, page]);
-
-  // 60-second ticker for the SLA column. Same as before.
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Called by TicketFilters when the user changes a dropdown.
   function handleFilterChange(key: 'status' | 'priority', value: string) {
-    // Build a new params object from the current one. Mutating the
-    // existing searchParams directly is not allowed (it's a read-only
-    // view) and would be wrong anyway — we need a fresh object.
     const next = new URLSearchParams(searchParams);
 
     if (value === '') {
@@ -152,13 +147,6 @@ function TicketsPage() {
   }
 
   // Called by the Pagination component. Writes `page` to the URL.
-  //
-  // If the user clicks page 1, we delete the `page` param entirely
-  // instead of setting `page=1`. Two reasons:
-  //   1. Cleaner URLs — the default state has no params.
-  //   2. It avoids pushing a new history entry when clicking the
-  //      already-active page 1, because React Router compares the
-  //      resulting URL string, and it's identical.
   function handlePageChange(newPage: number) {
     const next = new URLSearchParams(searchParams);
     if (newPage <= 1) {
@@ -168,9 +156,6 @@ function TicketsPage() {
     }
     setSearchParams(next);
 
-    // Scroll to top so the user isn't left at the bottom of the new page.
-    // `behavior: 'instant'` rather than 'smooth' — smooth scroll on a
-    // table that's about to re-render feels janky.
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
@@ -189,7 +174,21 @@ function TicketsPage() {
         onChange={handleFilterChange}
       />
 
-      {loading && <div className="page-loading">Loading tickets…</div>}
+      {loading && (
+        <div className="page-loading">
+          Loading tickets…
+          <span
+            style={{
+              display: 'block',
+              fontSize: 12,
+              color: 'var(--color-text-dim)',
+              marginTop: 4,
+            }}
+          >
+            The backend may take 30–60 seconds to wake up on the first request.
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="page-error">
@@ -198,18 +197,18 @@ function TicketsPage() {
         </div>
       )}
 
-       {!loading && !error && data && (
+      {!loading && !error && data && (
         <>
-        <TicketTable
-        tickets={data.tickets}
-        now={now}
-        onRowClick={handleRowClick}
-        />
-        <Pagination
-         currentPage={data.pagination.page}
-         totalPages={data.pagination.total_pages}
-         onChange={handlePageChange}
-        />
+          <TicketTable
+            tickets={data.tickets}
+            now={now}
+            onRowClick={handleRowClick}
+          />
+          <Pagination
+            currentPage={data.pagination.page}
+            totalPages={data.pagination.total_pages}
+            onChange={handlePageChange}
+          />
         </>
       )}
 
@@ -239,7 +238,6 @@ function TicketsPage() {
       {detail && (
         <TicketDetail ticket={detail} now={now} onClose={handleDetailClose} />
       )}
-
     </div>
   );
 }
